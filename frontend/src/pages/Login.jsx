@@ -297,10 +297,20 @@ const Login = () => {
 
       // Keep your existing post-login redirect behavior.
     } catch (err) {
-      setError(
-        err?.response?.data?.error ||
-          "Login failed. Please check your credentials."
-      );
+      let msg = "Login failed. Please check your credentials.";
+      const data = err?.response?.data;
+      if (typeof data?.error === 'string') {
+        msg = data.error;
+      } else if (typeof data?.message === 'string') {
+        msg = data.message;
+      } else if (data?.error && typeof data.error === 'object') {
+        msg = data.error.message || JSON.stringify(data.error);
+      } else if (data && typeof data === 'object') {
+        msg = data.message || data.error || (data.code ? `Error (${data.code}): ${data.message || 'Endpoint not found'}` : JSON.stringify(data));
+      } else if (typeof err?.message === 'string') {
+        msg = err.message;
+      }
+      setError(String(msg));
     } finally {
       setLoading(false);
     }
@@ -386,9 +396,9 @@ const Login = () => {
               {error && (
                 <div
                   role="alert"
-                  className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+                  className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 font-medium"
                 >
-                  {error}
+                  {typeof error === 'string' ? error : (error?.message || String(error))}
                 </div>
               )}
 

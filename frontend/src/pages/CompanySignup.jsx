@@ -307,7 +307,13 @@ const CompanySignup = () => {
             await signupCompany(formData);
             navigate('/company-dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to create account.');
+            const data = err.response?.data;
+            const msg = (typeof data?.error === 'string' ? data.error : '') || 
+                        (typeof data?.message === 'string' ? data.message : '') || 
+                        (data?.error?.message ? data.error.message : '') || 
+                        (typeof err?.message === 'string' ? err.message : '') || 
+                        'Failed to create account.';
+            setError(String(msg));
         } finally {
             setLoading(false);
         }
@@ -335,7 +341,7 @@ const CompanySignup = () => {
                 <div className="p-6 sm:p-8 md:p-10">
                     {error && (
                         <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm border border-red-200 font-medium text-center">
-                            {error}
+                            {typeof error === 'string' ? error : (error?.message || String(error))}
                         </div>
                     )}
 

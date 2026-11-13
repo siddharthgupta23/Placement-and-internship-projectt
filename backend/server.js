@@ -1,4 +1,12 @@
-import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
+
 import express, { json } from 'express';
 import { connect } from 'mongoose';
 import cors from 'cors';
@@ -120,5 +128,9 @@ connect(process.env.MONGO_URI)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => console.log(`Server running on ${PORT}`));
+if (!process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    httpServer.listen(PORT, () => console.log(`Server running on ${PORT}`));
+}
+
+export default app;
