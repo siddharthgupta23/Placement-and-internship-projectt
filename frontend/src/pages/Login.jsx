@@ -237,7 +237,7 @@ const roleContent = {
     fieldLabel: "Super Admin Email",
     placeholder: "Enter your email address",
     icon: ShieldCheck,
-    src: "/images/SuperAdmin-illustration.webp",
+    src: "public/SuperAdmin-illustartion.png",
     footer: "Restricted access • Super admin only",
     footerLink: "",
   },

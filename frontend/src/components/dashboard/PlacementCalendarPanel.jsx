@@ -4,15 +4,15 @@ import api from '../../api';
 import { 
   Calendar as CalendarIcon, Clock, MapPin, Download, 
   ChevronLeft, ChevronRight, Filter, Eye, Sparkles, Building2, Bell,
-  Briefcase, CheckCircle2, ArrowRight, X, ExternalLink
+  Briefcase, CheckCircle2, ArrowRight, X, ExternalLink, Video
 } from 'lucide-react';
 
-const PlacementCalendarPanel = () => {
+const PlacementCalendarPanel = ({ onSwitchTab }) => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState(window.innerWidth < 768 ? 'list' : 'month');
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 1)); // Oct 2026 default or today
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [dayEventsModal, setDayEventsModal] = useState(null); // { dateStr, events: [] }
   const [eventTypeFilter, setEventTypeFilter] = useState('All');
@@ -27,6 +27,17 @@ const PlacementCalendarPanel = () => {
       const res = await api.get('/calendar/events');
       const evs = res.data.events || [];
       setEvents(evs);
+
+      // Auto-focus calendar view: if there is an upcoming interview or active event, focus on that month
+      const now = new Date();
+      const upcoming = evs.find(e => e.type === 'interview' && new Date(e.date) >= now) ||
+                       evs.find(e => new Date(e.date) >= now);
+      if (upcoming) {
+        const uDate = new Date(upcoming.date);
+        setCurrentDate(new Date(uDate.getFullYear(), uDate.getMonth(), 1));
+      } else {
+        setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1));
+      }
     } catch (err) {
       console.error('Failed to fetch calendar events:', err);
     } finally {
@@ -74,7 +85,19 @@ const PlacementCalendarPanel = () => {
 
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
-      const matchType = eventTypeFilter === 'All' || e.eventType === eventTypeFilter;
+      let matchType = false;
+      if (eventTypeFilter === 'All') {
+        matchType = true;
+      } else if (eventTypeFilter === 'Technical Interview' || eventTypeFilter === 'Interview') {
+        matchType = e.type === 'interview' || 
+                    e.eventType === 'Technical Interview' || 
+                    e.eventType === 'Technical Round' || 
+                    e.eventType === 'HR Round' ||
+                    (e.eventType && e.eventType.toLowerCase().includes('interview')) ||
+                    (e.eventType && e.eventType.toLowerCase().includes('round'));
+      } else {
+        matchType = e.eventType === eventTypeFilter;
+      }
       const matchCompany = companyFilter === 'All' || e.companyName === companyFilter;
       return matchType && matchCompany;
     });
@@ -266,7 +289,18 @@ const PlacementCalendarPanel = () => {
           { label: 'All Events', val: 'All', count: events.length },
           { label: 'Placement Drives', val: 'Placement Drive', count: events.filter(e => e.eventType === 'Placement Drive').length },
           { label: 'Application Deadlines', val: 'Application Deadline', count: events.filter(e => e.eventType === 'Application Deadline').length },
-          { label: 'Technical Interviews', val: 'Technical Interview', count: events.filter(e => e.eventType === 'Technical Interview').length },
+          { 
+            label: 'Technical Interviews', 
+            val: 'Technical Interview', 
+            count: events.filter(e => 
+              e.type === 'interview' || 
+              e.eventType === 'Technical Interview' || 
+              e.eventType === 'Technical Round' || 
+              e.eventType === 'HR Round' || 
+              (e.eventType && e.eventType.toLowerCase().includes('interview')) ||
+              (e.eventType && e.eventType.toLowerCase().includes('round'))
+            ).length 
+          },
           { label: 'Skill Workshops', val: 'Skill Workshop', count: events.filter(e => e.eventType === 'Skill Workshop').length },
           { label: 'Hackathons', val: 'Hackathon', count: events.filter(e => e.eventType === 'Hackathon').length },
         ].map(pill => {
@@ -560,7 +594,31 @@ const PlacementCalendarPanel = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
-              {selectedEvent.jobId ? (
+              {selectedEvent.type === 'interview' ? (
+                <>
+                  {selectedEvent.meetingLink && (
+                    <a
+                      href={selectedEvent.meetingLink.startsWith('http') ? selectedEvent.meetingLink : `https://${selectedEvent.meetingLink}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Video className="w-3.5 h-3.5" /> Join Virtual Meeting
+                    </a>
+                  )}
+                  {onSwitchTab && (
+                    <button
+                      onClick={() => {
+                        setSelectedEvent(null);
+                        onSwitchTab('schedule');
+                      }}
+                      className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Clock className="w-3.5 h-3.5" /> View in Interview Schedule
+                    </button>
+                  )}
+                </>
+              ) : selectedEvent.jobId ? (
                 <button
                   onClick={() => {
                     setSelectedEvent(null);

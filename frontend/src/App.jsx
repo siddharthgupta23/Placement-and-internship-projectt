@@ -233,10 +233,10 @@ function AppContent() {
             <Route
               path="/company-dashboard"
               element={
-                user?.role === 'company' ? (
+                ['company', 'admin', 'super_admin'].includes(user?.role) ? (
                   <CompanyDashboard />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <Navigate to="/company-login" replace />
                 )
               }
             />

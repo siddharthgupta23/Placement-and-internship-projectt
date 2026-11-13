@@ -8,7 +8,7 @@ import {
   ShieldCheck, Bell, User, LogOut, ChevronLeft, ChevronRight, 
   Menu, X, Search, Sparkles, TrendingUp, AlertTriangle, 
   GraduationCap, Clock, Award, Star, ExternalLink, ArrowRight, 
-  BarChart3, Edit3, Plus, Trash2, ArrowUpRight 
+  BarChart3, Edit3, Plus, Trash2, ArrowUpRight, Video
 } from 'lucide-react';
 
 // Specialized panels
@@ -40,6 +40,7 @@ export default function StudentDashboard() {
   const [applications, setApplications] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [scheduledInterviews, setScheduledInterviews] = useState([]);
   const [_loading, setLoading] = useState(true);
 
   // Profile Edit Modal State
@@ -52,15 +53,17 @@ export default function StudentDashboard() {
       api.get('/student/dashboard').catch(() => ({ data: { profile: null } })),
       api.get('/jobs/applications/me').catch(() => ({ data: { applications: [] } })),
       api.get('/jobs').catch(() => ({ data: { jobs: [] } })),
-      api.get('/calendar/events').catch(() => ({ data: { events: [] } }))
+      api.get('/calendar/events').catch(() => ({ data: { events: [] } })),
+      api.get('/interviews/my').catch(() => ({ data: { interviews: [] } }))
     ])
-      .then(([resProfile, resApps, resJobs, resCalendar]) => {
+      .then(([resProfile, resApps, resJobs, resCalendar, resInterviews]) => {
         const prof = resProfile.data?.profile || {};
         setProfile(prof);
         setEditForm(prof);
         setApplications(resApps.data?.applications || []);
         setJobs(resJobs.data?.jobs || []);
         setEvents(resCalendar.data?.events || []);
+        setScheduledInterviews(resInterviews.data?.interviews || []);
         setLoading(false);
       })
       .catch((err) => {
@@ -133,7 +136,7 @@ export default function StudentDashboard() {
         { id: 'jobs', label: 'Campus Drives', icon: Briefcase },
         { id: 'applications', label: 'My Applications', icon: FileCheck, badge: applications.length },
         { id: 'eligibility', label: 'Eligibility Checker', icon: ShieldCheck },
-        { id: 'calendar', label: 'Placement Calendar', icon: Calendar }
+        { id: 'calendar', label: 'Placement Calendar', icon: Calendar, badge: events.filter(e => e.type === 'interview' || e.type === 'drive').length || undefined }
       ]
     },
     {
@@ -149,7 +152,7 @@ export default function StudentDashboard() {
     {
       heading: 'Campus Activities',
       items: [
-        { id: 'schedule', label: 'Interview Schedule', icon: Clock },
+        { id: 'schedule', label: 'Interview Schedule', icon: Clock, badge: scheduledInterviews.length || undefined },
         { id: 'workshops', label: 'Skill Workshops', icon: Sparkles },
         { id: 'hackathons', label: 'Hackathons', icon: Trophy },
         { id: 'reviews', label: 'Company Reviews', icon: MessageSquare }
@@ -406,9 +409,9 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* 6 Key Summary Cards */}
-              {/* 6 Key Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* 7 Key Summary Cards */}
+              {/* 7 Key Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
                 <div 
                   onClick={() => setActiveTab('applications')}
                   className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer group"
@@ -425,6 +428,17 @@ export default function StudentDashboard() {
                   <p className="text-3xs font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-emerald-600 transition">Shortlisted</p>
                   <h3 className="text-2xl font-black text-emerald-600 mt-1">{shortlistedApps.length}</h3>
                   <span className="text-3xs font-bold text-emerald-700 mt-1 block">Interviews Cleared</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('schedule')}
+                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition cursor-pointer group ${scheduledInterviews.length > 0 ? 'border-purple-300 bg-purple-50/30' : 'border-slate-200'}`}
+                >
+                  <p className="text-3xs font-extrabold uppercase tracking-wider text-slate-400 group-hover:text-purple-600 transition">Interviews</p>
+                  <h3 className={`text-2xl font-black mt-1 ${scheduledInterviews.length > 0 ? 'text-purple-700' : 'text-slate-900'}`}>{scheduledInterviews.length}</h3>
+                  <span className="text-3xs font-bold text-purple-600 mt-1 block">
+                    {scheduledInterviews.length > 0 ? '🔔 Scheduled' : 'None Yet'}
+                  </span>
                 </div>
 
                 <div 
@@ -465,6 +479,47 @@ export default function StudentDashboard() {
                   <span className="text-3xs font-bold text-emerald-600 mt-1 block">Optimal Match</span>
                 </div>
               </div>
+
+              {/* Upcoming Interview Alert Banner */}
+              {scheduledInterviews.length > 0 && (() => {
+                const next = scheduledInterviews.find(i => new Date(i.interviewDate) >= new Date()) || scheduledInterviews[0];
+                return next ? (
+                  <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900 text-white p-5 rounded-2xl shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-purple-700/40">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                        <Video className="w-4 h-4 text-purple-200" />
+                      </div>
+                      <div>
+                        <span className="text-3xs font-black uppercase tracking-widest text-purple-300">📅 Upcoming Interview</span>
+                        <h4 className="font-black text-sm text-white mt-0.5">{next.roundName || 'Technical Round'} — {next.job?.role || 'Campus Role'}</h4>
+                        <p className="text-2xs text-purple-100/80 mt-0.5">
+                          {next.company?.name || 'Hiring Company'} •{' '}
+                          {new Date(next.interviewDate).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })} at {next.interviewTime || '10:00 AM'} •{' '}
+                          {next.mode || 'Online'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {next.mode === 'Online' && next.meetingLink && (
+                        <a
+                          href={next.meetingLink.startsWith('http') ? next.meetingLink : `https://${next.meetingLink}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 bg-white text-purple-900 hover:bg-purple-50 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow"
+                        >
+                          <Video className="w-3.5 h-3.5" /> Join Meet
+                        </a>
+                      )}
+                      <button
+                        onClick={() => setActiveTab('schedule')}
+                        className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600/70 text-white font-bold rounded-xl text-xs flex items-center gap-1 transition border border-purple-500/40"
+                      >
+                        View All <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Cleared Interview Rounds & Shortlisted Companies Section */}
               <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-4">
@@ -855,7 +910,7 @@ export default function StudentDashboard() {
           {activeTab === 'skillGap' && <SkillGapPanel />}
           {activeTab === 'interviewPrep' && <InterviewPrepPanel />}
           {activeTab === 'schedule' && <ScheduledInterviewsPanel />}
-          {activeTab === 'calendar' && <PlacementCalendarPanel />}
+          {activeTab === 'calendar' && <PlacementCalendarPanel onSwitchTab={setActiveTab} />}
           {activeTab === 'workshops' && <StudentWorkshopsPanel />}
           {activeTab === 'hackathons' && <StudentHackathonsPanel />}
           {activeTab === 'reviews' && <CompanyReviewsPanel />}
