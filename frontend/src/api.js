@@ -1,7 +1,22 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5089/api';
+        }
+        // In production on Vercel or custom domain, relative path '/api' stays same-origin so cookies are never blocked
+        return '/api';
+    }
+    return 'http://localhost:5089/api';
+};
+
 const api = axios.create({
-    baseURL: 'https://placement-and-internship-projectt.vercel.app/api' || 'http://localhost:5089/api', // Note: Make sure backend runs on 5000
+    baseURL: getBaseURL(),
     withCredentials: true, // IMPORTANT for session cookies!
 });
 

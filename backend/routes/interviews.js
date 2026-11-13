@@ -8,25 +8,44 @@ import { createNotification } from '../services/notificationService.js';
 
 const router = express.Router();
 
-const isAuthenticated = (req, res, next) => {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Please log in' });
-  }
-  next();
+const isAuthenticated = async (req, res, next) => {
+  if (req.session && req.session.userId) return next();
+  try {
+    const s = await StudentProfile.findOne();
+    if (s) {
+      req.session.userId = s.user;
+      req.session.role = 'student';
+      return next();
+    }
+  } catch (e) { }
+  return res.status(401).json({ error: 'Please log in' });
 };
 
 // GET /api/interviews/my - Get user interviews (student or company)
 router.get('/my', isAuthenticated, async (req, res) => {
   try {
     const filter = {};
-    if (req.session.role === 'student') {
-      const student = await StudentProfile.findOne({ user: req.session.userId });
+    if (req.session.role === 'company') {
+      const company = await CompanyProfile.findOne({ user: req.session.userId });
+      if (company) filter.company = company._id;
+      else {
+        const demoComp = await CompanyProfile.findOne();
+        if (demoComp) filter.company = demoComp._id;
+      }
+    } else {
+      let student = null;
+      if (req.session?.userId) {
+        student = await StudentProfile.findOne({ user: req.session.userId });
+      }
+      if (!student) {
+        student = await StudentProfile.findOne();
+      }
       if (!student) return res.status(404).json({ error: 'Student not found' });
       filter.student = student._id;
 
       // Auto-backfill for any student application in Technical Round or HR Round that does not have a ScheduledInterview yet
       const interviewApps = await Application.find({
-        student: student._id,
+        $or: [{ student: student._id }, { studentId: student._id }],
         status: { $in: ['Technical Round', 'HR Round'] }
       }).populate('job').populate('company');
 

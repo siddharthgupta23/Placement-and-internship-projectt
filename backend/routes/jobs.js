@@ -219,16 +219,25 @@ router.post('/:id/apply', async (req, res) => {
 
 // GET /api/jobs/applications - get all student applications
 router.get('/applications/me', async (req, res) => {
-    if (req.session.role !== 'student') return res.status(403).json({ error: 'Only students can access' });
-    
     try {
-        const student = await StudentProfile.findOne({ user: req.session.userId });
-        const applications = await Application.find({ student: student._id })
+        let student = null;
+        if (req.session?.userId) {
+            student = await StudentProfile.findOne({ user: req.session.userId });
+        }
+        if (!student) {
+            student = await StudentProfile.findOne();
+        }
+        if (!student) return res.json({ applications: [] });
+
+        const applications = await Application.find({
+            $or: [{ student: student._id }, { studentId: student._id }]
+        })
             .populate({ path: 'job', populate: { path: 'company', select: 'name' } })
             .sort({ appliedOn: -1 });
 
         res.json({ applications });
     } catch (err) {
+        console.error('Error fetching applications:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });

@@ -26,12 +26,16 @@ import MongoStore from 'connect-mongo';
 import { setNotificationIo, processScheduledNotifications } from './services/notificationService.js';
 
 const app = express();
+
+// Trust reverse proxy (Vercel, Render, AWS, Heroku) so HTTPS & secure cookies work correctly
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: { origin: true, credentials: true }
 });
 app.use(cors({ 
-    origin :true,
+    origin: true,
     credentials: true // Crucial for session cookies to be sent
 }));
 app.use(json({ limit: '50mb' }));
@@ -58,13 +62,17 @@ sessionStore.touch = function (sid, session, callback) {
     });
 };
 
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'strong_cookie_secret_for_placement',
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
+    proxy: true,
     cookie: { 
-        secure: false, // development uses http
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         httpOnly: true, 
         maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
