@@ -4,7 +4,14 @@ import api from '../api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        try {
+            const saved = localStorage.getItem('user');
+            return saved ? JSON.parse(saved) : null;
+        } catch {
+            return null;
+        }
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -14,9 +21,19 @@ export const AuthProvider = ({ children }) => {
     const checkUser = async () => {
         try {
             const { data } = await api.get('/auth/me');
-            setUser(data.user || null);
+            if (data?.user) {
+                setUser(data.user);
+                localStorage.setItem('user', JSON.stringify(data.user));
+            } else {
+                setUser(null);
+                localStorage.removeItem('user');
+            }
         } catch (err) {
-            setUser(null);
+            // Only clear user on explicit 401 unauthorized
+            if (err?.response?.status === 401) {
+                setUser(null);
+                localStorage.removeItem('user');
+            }
         } finally {
             setLoading(false);
         }
@@ -24,20 +41,29 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (credentials) => {
         const { data } = await api.post('/auth/login', credentials);
-        setUser(data.user);
+        if (data?.user) {
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+        }
         return data.user;
     };
 
     const signupCompany = async (credentials) => {
         const { data } = await api.post('/auth/signup/company', credentials);
-        setUser(data.user);
+        if (data?.user) {
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+        }
         return data.user;
     };
 
     const logout = async () => {
-        await api.post('/auth/logout');
+        try {
+            await api.post('/auth/logout');
+        } catch (e) { }
         setUser(null);
-        window.location.href = '/';
+        localStorage.removeItem('user');
+        window.location.href = '/login';
     };
 
     return (
