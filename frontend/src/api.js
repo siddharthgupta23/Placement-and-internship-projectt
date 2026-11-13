@@ -7,16 +7,16 @@ const getBaseURL = () => {
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            // If on Vite dev server (port 5173), relative '/api' uses Vite proxy seamlessly
+            // If on Vite dev server (port 5173), relative '/api' uses Vite proxy to 5089 seamlessly
             if (window.location.port === '5173') {
                 return '/api';
             }
-            return 'http://localhost:5000/api';
+            return 'http://127.0.0.1:5089/api';
         }
         // In production on Vercel or any hosted domain, '/api' is routed to backend via vercel.json
         return '/api';
     }
-    return 'http://localhost:5000/api';
+    return 'http://127.0.0.1:5089/api';
 };
 
 const api = axios.create({

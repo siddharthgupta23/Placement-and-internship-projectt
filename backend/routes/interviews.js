@@ -26,11 +26,54 @@ router.get('/my', isAuthenticated, async (req, res) => {
   try {
     const filter = {};
     if (req.session.role === 'company') {
-      const company = await CompanyProfile.findOne({ user: req.session.userId });
-      if (company) filter.company = company._id;
-      else {
-        const demoComp = await CompanyProfile.findOne();
-        if (demoComp) filter.company = demoComp._id;
+      let company = null;
+      if (req.session.userId) {
+        company = await CompanyProfile.findOne({ user: req.session.userId });
+      }
+      if (!company) {
+        company = await CompanyProfile.findOne();
+      }
+      if (!company) return res.status(404).json({ error: 'Company profile not found' });
+      filter.company = company._id;
+
+      const interviewApps = await Application.find({
+        company: company._id,
+        status: { $in: ['Technical Round', 'HR Round'] }
+      }).populate('job').populate('student');
+
+      for (const app of interviewApps) {
+        if (!app.student) continue;
+        const studentId = app.student._id || app.student;
+        const exists = await ScheduledInterview.findOne({
+          student: studentId,
+          job: app.job?._id || app.job,
+          roundName: app.status
+        });
+        if (!exists) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(10, 0, 0, 0);
+
+          const shortApp = app._id.toString().slice(-4);
+          const shortStudent = studentId.toString().slice(-4);
+
+          await ScheduledInterview.create({
+            company: company._id,
+            student: studentId,
+            job: app.job?._id || app.job,
+            application: app._id,
+            roundName: app.status,
+            interviewDate: tomorrow,
+            interviewTime: '10:00 AM',
+            durationMinutes: 45,
+            mode: 'Online',
+            meetingLink: `https://meet.google.com/plm-${shortApp}-${shortStudent}`,
+            venue: 'Virtual Room',
+            instructions: 'Please be ready 5 minutes early with your camera and mic enabled.',
+            interviewerName: 'Hiring Panel',
+            status: 'Scheduled'
+          });
+        }
       }
     } else {
       let student = null;
@@ -66,50 +109,6 @@ router.get('/my', isAuthenticated, async (req, res) => {
           await ScheduledInterview.create({
             company: app.company?._id || app.company,
             student: student._id,
-            job: app.job?._id || app.job,
-            application: app._id,
-            roundName: app.status,
-            interviewDate: tomorrow,
-            interviewTime: '10:00 AM',
-            durationMinutes: 45,
-            mode: 'Online',
-            meetingLink: `https://meet.google.com/plm-${shortApp}-${shortStudent}`,
-            venue: 'Virtual Room',
-            instructions: 'Please be ready 5 minutes early with your camera and mic enabled.',
-            interviewerName: 'Hiring Panel',
-            status: 'Scheduled'
-          });
-        }
-      }
-    } else if (req.session.role === 'company') {
-      const company = await CompanyProfile.findOne({ user: req.session.userId });
-      if (!company) return res.status(404).json({ error: 'Company profile not found' });
-      filter.company = company._id;
-
-      const interviewApps = await Application.find({
-        company: company._id,
-        status: { $in: ['Technical Round', 'HR Round'] }
-      }).populate('job').populate('student');
-
-      for (const app of interviewApps) {
-        if (!app.student) continue;
-        const studentId = app.student._id || app.student;
-        const exists = await ScheduledInterview.findOne({
-          student: studentId,
-          job: app.job?._id || app.job,
-          roundName: app.status
-        });
-        if (!exists) {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(10, 0, 0, 0);
-
-          const shortApp = app._id.toString().slice(-4);
-          const shortStudent = studentId.toString().slice(-4);
-
-          await ScheduledInterview.create({
-            company: company._id,
-            student: studentId,
             job: app.job?._id || app.job,
             application: app._id,
             roundName: app.status,
