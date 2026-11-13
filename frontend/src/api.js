@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5089/api', // Note: Make sure backend runs on 5000
+    baseURL: 'https://placement-and-internship-projectt.vercel.app/api' || 'http://localhost:5089/api', // Note: Make sure backend runs on 5000
     withCredentials: true, // IMPORTANT for session cookies!
 });
 
