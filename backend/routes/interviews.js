@@ -3,6 +3,7 @@ import ScheduledInterview from '../models/ScheduledInterview.js';
 import CompanyProfile from '../models/Company.js';
 import StudentProfile from '../models/Student.js';
 import Job from '../models/Job.js';
+import Application from '../models/Application.js';
 import { createNotification } from '../services/notificationService.js';
 
 const router = express.Router();
@@ -22,10 +23,89 @@ router.get('/my', isAuthenticated, async (req, res) => {
       const student = await StudentProfile.findOne({ user: req.session.userId });
       if (!student) return res.status(404).json({ error: 'Student not found' });
       filter.student = student._id;
+
+      // Auto-backfill for any student application in Technical Round or HR Round that does not have a ScheduledInterview yet
+      const interviewApps = await Application.find({
+        student: student._id,
+        status: { $in: ['Technical Round', 'HR Round'] }
+      }).populate('job').populate('company');
+
+      for (const app of interviewApps) {
+        const exists = await ScheduledInterview.findOne({
+          student: student._id,
+          job: app.job?._id || app.job,
+          roundName: app.status
+        });
+        if (!exists) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(10, 0, 0, 0);
+
+          const shortApp = app._id.toString().slice(-4);
+          const shortStudent = student._id.toString().slice(-4);
+
+          await ScheduledInterview.create({
+            company: app.company?._id || app.company,
+            student: student._id,
+            job: app.job?._id || app.job,
+            application: app._id,
+            roundName: app.status,
+            interviewDate: tomorrow,
+            interviewTime: '10:00 AM',
+            durationMinutes: 45,
+            mode: 'Online',
+            meetingLink: `https://meet.google.com/plm-${shortApp}-${shortStudent}`,
+            venue: 'Virtual Room',
+            instructions: 'Please be ready 5 minutes early with your camera and mic enabled.',
+            interviewerName: 'Hiring Panel',
+            status: 'Scheduled'
+          });
+        }
+      }
     } else if (req.session.role === 'company') {
       const company = await CompanyProfile.findOne({ user: req.session.userId });
-      if (!company) return res.status(404).json({ error: 'Company not found' });
+      if (!company) return res.status(404).json({ error: 'Company profile not found' });
       filter.company = company._id;
+
+      const interviewApps = await Application.find({
+        company: company._id,
+        status: { $in: ['Technical Round', 'HR Round'] }
+      }).populate('job').populate('student');
+
+      for (const app of interviewApps) {
+        if (!app.student) continue;
+        const studentId = app.student._id || app.student;
+        const exists = await ScheduledInterview.findOne({
+          student: studentId,
+          job: app.job?._id || app.job,
+          roundName: app.status
+        });
+        if (!exists) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(10, 0, 0, 0);
+
+          const shortApp = app._id.toString().slice(-4);
+          const shortStudent = studentId.toString().slice(-4);
+
+          await ScheduledInterview.create({
+            company: company._id,
+            student: studentId,
+            job: app.job?._id || app.job,
+            application: app._id,
+            roundName: app.status,
+            interviewDate: tomorrow,
+            interviewTime: '10:00 AM',
+            durationMinutes: 45,
+            mode: 'Online',
+            meetingLink: `https://meet.google.com/plm-${shortApp}-${shortStudent}`,
+            venue: 'Virtual Room',
+            instructions: 'Please be ready 5 minutes early with your camera and mic enabled.',
+            interviewerName: 'Hiring Panel',
+            status: 'Scheduled'
+          });
+        }
+      }
     }
 
     const interviews = await ScheduledInterview.find(filter)
@@ -36,6 +116,7 @@ router.get('/my', isAuthenticated, async (req, res) => {
 
     res.json({ interviews });
   } catch (err) {
+    console.error('Error in /interviews/my:', err);
     res.status(500).json({ error: 'Failed to fetch scheduled interviews' });
   }
 });
@@ -48,6 +129,8 @@ router.post('/schedule', isAuthenticated, async (req, res) => {
     }
 
     const { 
+      interviewId,
+      applicationId,
       studentId, 
       jobId, 
       roundName, 
@@ -70,45 +153,63 @@ router.post('/schedule', isAuthenticated, async (req, res) => {
 
     const targetDate = new Date(interviewDate);
 
-    // Double-booking check for student
-    const studentConflict = await ScheduledInterview.findOne({
+    // Double-booking check for student (excluding self if editing)
+    const conflictFilter = {
       student: studentId,
       interviewDate: targetDate,
       interviewTime: interviewTime,
       status: { $nin: ['Cancelled'] }
-    });
+    };
+    if (interviewId) {
+      conflictFilter._id = { $ne: interviewId };
+    }
 
+    const studentConflict = await ScheduledInterview.findOne(conflictFilter);
     if (studentConflict) {
       return res.status(400).json({ error: 'Student already has another interview scheduled at this exact date and time.' });
     }
 
-    // Double-booking check for company
-    const companyConflict = await ScheduledInterview.findOne({
-      company: companyId,
-      interviewDate: targetDate,
-      interviewTime: interviewTime,
-      status: { $nin: ['Cancelled'] }
-    });
-
-    if (companyConflict) {
-      return res.status(400).json({ error: 'You already have an interview slot booked at this time. Please pick another slot.' });
+    let interview;
+    if (interviewId) {
+      interview = await ScheduledInterview.findById(interviewId);
+      if (interview) {
+        interview.roundName = roundName || interview.roundName;
+        interview.interviewDate = targetDate;
+        interview.interviewTime = interviewTime;
+        interview.durationMinutes = durationMinutes || 45;
+        interview.mode = mode || 'Online';
+        interview.meetingLink = meetingLink || '';
+        interview.venue = venue || '';
+        interview.instructions = instructions || '';
+        interview.interviewerName = interviewerName || 'Hiring Panel';
+        interview.status = 'Scheduled';
+        await interview.save();
+      }
     }
 
-    const interview = await ScheduledInterview.create({
-      company: companyId,
-      student: studentId,
-      job: jobId,
-      roundName: roundName || 'Technical Round 1',
-      interviewDate: targetDate,
-      interviewTime,
-      durationMinutes: durationMinutes || 45,
-      mode: mode || 'Online',
-      meetingLink: meetingLink || '',
-      venue: venue || '',
-      instructions: instructions || '',
-      interviewerName: interviewerName || 'Hiring Panel',
-      status: 'Scheduled'
-    });
+    if (!interview) {
+      interview = await ScheduledInterview.create({
+        company: companyId,
+        student: studentId,
+        job: jobId,
+        application: applicationId || undefined,
+        roundName: roundName || 'Technical Round',
+        interviewDate: targetDate,
+        interviewTime,
+        durationMinutes: durationMinutes || 45,
+        mode: mode || 'Online',
+        meetingLink: meetingLink || '',
+        venue: venue || '',
+        instructions: instructions || '',
+        interviewerName: interviewerName || 'Hiring Panel',
+        status: 'Scheduled'
+      });
+    }
+
+    // Also update corresponding application status if applicationId provided
+    if (applicationId) {
+      await Application.findByIdAndUpdate(applicationId, { status: roundName || 'Technical Round' });
+    }
 
     // Notify student
     try {
@@ -116,9 +217,9 @@ router.post('/schedule', isAuthenticated, async (req, res) => {
       await createNotification({
         studentId,
         type: 'interview_scheduled',
-        title: 'New Interview Scheduled',
-        message: `Your ${roundName || 'Interview'} for ${jobDoc?.role || 'Job'} has been scheduled on ${new Date(interviewDate).toLocaleDateString()} at ${interviewTime}.`,
-        channels: ['in_app', 'email']
+        title: 'Interview Scheduled',
+        message: `Your ${roundName || 'Interview'} for ${jobDoc?.role || 'Job'} has been scheduled on ${new Date(interviewDate).toLocaleDateString()} at ${interviewTime}. Check your Interview Schedule to join or manage this round.`,
+        channels: ['in_app', 'email', 'sms', 'push']
       });
     } catch (nErr) {
       console.warn('Interview notification warning:', nErr.message);
