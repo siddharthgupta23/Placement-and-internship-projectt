@@ -5,6 +5,8 @@ import StudentProfile from '../models/Student.js';
 import Job from '../models/Job.js';
 import Application from '../models/Application.js';
 import { createNotification } from '../services/notificationService.js';
+import { sendInterviewScheduledEmail } from '../services/emailService.js';
+import { sendInterviewScheduledSms } from '../services/smsService.js';
 
 const router = express.Router();
 
@@ -229,13 +231,43 @@ router.post('/schedule', isAuthenticated, async (req, res) => {
       await Application.findByIdAndUpdate(applicationId, { status: roundName || 'Technical Round' });
     }
 
-    // Notify student
+    // Notify student via direct Email & notification channels
     try {
-      const jobDoc = await Job.findById(jobId);
+      const [jobDoc, studentDoc, companyDoc] = await Promise.all([
+        Job.findById(jobId).populate('company', 'name'),
+        StudentProfile.findById(studentId),
+        companyId ? CompanyProfile.findById(companyId) : null
+      ]);
+
+      const companyName = jobDoc?.company?.name || companyDoc?.name || 'Recruiter Partner';
+      const studentEmail = studentDoc?.email;
+
+      if (studentEmail && studentEmail.includes('@')) {
+        sendInterviewScheduledEmail(
+          studentEmail,
+          studentDoc?.name || 'Candidate',
+          companyName,
+          interviewDate,
+          meetingLink || venue
+        );
+      }
+
+      // Direct SMS alert dispatch to student mobile number
+      if (studentDoc?.phone) {
+        sendInterviewScheduledSms(
+          studentDoc.phone,
+          studentDoc.name || 'Candidate',
+          companyName,
+          interviewDate,
+          interviewTime,
+          mode
+        );
+      }
+
       await createNotification({
         studentId,
         type: 'interview_scheduled',
-        title: 'Interview Scheduled',
+        title: `Interview Scheduled — ${companyName}`,
         message: `Your ${roundName || 'Interview'} for ${jobDoc?.role || 'Job'} has been scheduled on ${new Date(interviewDate).toLocaleDateString()} at ${interviewTime}. Check your Interview Schedule to join or manage this round.`,
         channels: ['in_app', 'email', 'sms', 'push']
       });

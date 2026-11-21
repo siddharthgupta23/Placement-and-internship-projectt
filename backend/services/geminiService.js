@@ -4,19 +4,23 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // ─── API Key & Model config ───────────────────────────────────────────────────
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || '';
-const configuredModel = process.env.GEMINI_MODEL || process.env.GEMINI_MODEL_NAME || 'gemini-3.5-flash';
+const rawKeys = [process.env.GEMINI_API_KEY, process.env.GOOGLE_GEMINI_API_KEY]
+  .map(k => (k || '').trim().replace(/^["']|["']$/g, ''))
+  .filter(Boolean);
+const apiKeys = [...new Set(rawKeys)];
 
-if (!apiKey) {
+const rawModel = (process.env.GEMINI_MODEL || process.env.GEMINI_MODEL_NAME || '').trim();
+// Google Gemini official supported models (gemini-3.5 does not exist in Google API)
+const primaryModel = (rawModel && !rawModel.includes('3.5')) ? rawModel : 'gemini-1.5-flash';
+
+if (apiKeys.length === 0) {
   console.warn('[GeminiService] WARNING: No GEMINI_API_KEY found in environment. AI features will use fallback responses.');
 } else {
-  console.log(`[GeminiService] Initialized with primary model: ${configuredModel}`);
+  console.log(`[GeminiService] Initialized with primary model: ${primaryModel} (${apiKeys.length} API key(s) detected)`);
 }
 
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-
 // Available supported models in preference order
-const FALLBACK_MODELS = [configuredModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'].filter(
+const FALLBACK_MODELS = [primaryModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'].filter(
   (m, idx, arr) => arr.indexOf(m) === idx
 );
 
@@ -37,9 +41,8 @@ async function callWithRetry(fn, maxRetries = 2) {
         type: err?.constructor?.name
       });
 
-      // Don't retry on auth errors
+      // Don't retry on auth errors (switch key instead)
       if (status === 400 || status === 401 || status === 403) {
-        console.error('[GeminiService] Fatal client error - not retrying. Check your API key.');
         break;
       }
 
@@ -75,25 +78,25 @@ function parseJSONResponse(text) {
   }
 }
 
-// ─── Core generate function with multi-model fallback ──────────────────────────
+// ─── Core generate function with multi-key & multi-model fallback ─────────────
 async function generate(prompt) {
-  if (!genAI) throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env');
+  if (apiKeys.length === 0) throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env');
 
   let lastError;
-  for (const mName of FALLBACK_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ model: mName });
-      const result = await callWithRetry(() => model.generateContent(prompt));
-      return result.response.text().trim();
-    } catch (err) {
-      lastError = err;
-      const status = err?.status || err?.response?.status;
-      // If model not found (404) or unavailable (503), try next fallback model
-      if (status === 404 || status === 503) {
-        console.warn(`[GeminiService] Model ${mName} returned status ${status}. Trying next fallback model...`);
+  for (const currentKey of apiKeys) {
+    const genAI = new GoogleGenerativeAI(currentKey);
+    for (const mName of FALLBACK_MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({ model: mName });
+        const result = await callWithRetry(() => model.generateContent(prompt));
+        return result.response.text().trim();
+      } catch (err) {
+        lastError = err;
+        const status = err?.status || err?.response?.status;
+        const msg = err?.message || '';
+        console.warn(`[GeminiService] Model ${mName} call failed (${status || msg.substring(0, 80)}). Trying fallback...`);
         continue;
       }
-      throw err;
     }
   }
   throw lastError;
@@ -181,31 +184,44 @@ export const generateAIInsights = async (allStudents, allJobs, allApplications) 
     const totalStudents = allStudents.length;
     const allStudentSkills = allStudents.flatMap(s => s.skills || []);
     const skillCounts = {};
-    allStudentSkills.forEach(s => { skillCounts[s] = (skillCounts[s] || 0) + 1; });
+    allStudentSkills.forEach(s => { 
+      if (typeof s === 'string' && s.trim()) {
+        const k = s.trim();
+        skillCounts[k] = (skillCounts[k] || 0) + 1; 
+      }
+    });
 
     const reqSkills = allJobs.flatMap(j => j.requiredSkills || []);
     const reqSkillCounts = {};
-    reqSkills.forEach(s => { reqSkillCounts[s] = (reqSkillCounts[s] || 0) + 1; });
+    reqSkills.forEach(s => { 
+      if (typeof s === 'string' && s.trim()) {
+        const k = s.trim();
+        reqSkillCounts[k] = (reqSkillCounts[k] || 0) + 1; 
+      }
+    });
 
     const prompt = `University placement data analysis:
 - Students: ${totalStudents}, Jobs: ${allJobs.length}, Applications: ${allApplications.length}
 - Student skills (top): ${JSON.stringify(Object.entries(skillCounts).sort((a,b)=>b[1]-a[1]).slice(0,10))}
 - Required skills (top): ${JSON.stringify(Object.entries(reqSkillCounts).sort((a,b)=>b[1]-a[1]).slice(0,10))}
 
-Return ONLY valid JSON:
-{"avgResumeScore":75,"topSkills":["React"],"placementPrediction":82,"skillGapAnalysis":[{"skill":"AWS","gap":"High demand low supply"}]}`;
+Return ONLY valid JSON (no markdown fences):
+{"placementPrediction":82,"topSkills":["Python","React","Node.js","JavaScript","Java","SQL"],"skillGapAnalysis":[{"skill":"AWS","gap":"High demand low supply"}]}`;
 
-    return parseJSONResponse(await generate(prompt));
+    const res = parseJSONResponse(await generate(prompt));
+    if (res && res.avgResumeScore !== undefined) {
+      delete res.avgResumeScore;
+    }
+    return res;
   } catch (error) {
     console.error('[GeminiService] generateAIInsights failed, using computed fallback:', error.message);
     return {
-      avgResumeScore: 72,
-      topSkills: ['React', 'Node.js', 'Python', 'MongoDB', 'Java', 'SQL'],
+      topSkills: ['Python', 'React', 'Node.js', 'JavaScript', 'Java', 'MongoDB'],
       placementPrediction: 78,
       skillGapAnalysis: [
-        { skill: 'System Design', gap: 'High demand in technical rounds, low student coverage.' },
-        { skill: 'Cloud Services (AWS/GCP)', gap: 'Increasingly required by companies, low student supply.' },
-        { skill: 'DSA', gap: 'Core requirement for product companies, needs reinforcement.' }
+        { skill: 'Node.js', gap: 'High demand low supply across active recruiter drives.' },
+        { skill: 'MongoDB', gap: 'Backend database architecture requested in technical rounds.' },
+        { skill: 'Express.js', gap: 'API backend development framework required by companies.' }
       ]
     };
   }

@@ -2,6 +2,9 @@ import Notification from '../models/Notification.js';
 import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationLog from '../models/NotificationLog.js';
 import StudentProfile from '../models/Student.js';
+import User from '../models/User.js';
+import { sendEmailAsync } from './emailService.js';
+import { sendSmsAsync } from './smsService.js';
 
 let ioRef = null;
 
@@ -29,12 +32,19 @@ const dispatchExternalChannels = async (notification) => {
   if (external.length === 0) return;
 
   const profile = await StudentProfile.findById(notification.student_id);
-  const contactName = profile ? profile.name : 'Unknown';
+  const contactName = profile ? profile.name : 'Candidate';
 
   for (const channel of external) {
     let contactInfo = 'Unknown';
     if (profile) {
-        if (channel === 'email') contactInfo = profile.email || 'No email set';
+        if (channel === 'email') {
+          contactInfo = profile.email;
+          if (!contactInfo && profile.user) {
+            const userDoc = await User.findById(profile.user);
+            contactInfo = userDoc?.email;
+          }
+          if (!contactInfo) contactInfo = 'No email set';
+        }
         else if (channel === 'sms') contactInfo = profile.phone || 'No phone set';
         else if (channel === 'whatsapp') contactInfo = profile.whatsapp || profile.phone || 'No WhatsApp set';
         else if (channel === 'push') contactInfo = 'Registered Device';
@@ -46,6 +56,30 @@ const dispatchExternalChannels = async (notification) => {
       `\n   Type: ${notification.type}` +
       `\n   Title: "${notification.title}"\n`
     );
+
+    if (channel === 'email' && contactInfo && contactInfo.includes('@')) {
+      sendEmailAsync({
+        to: contactInfo,
+        subject: notification.title,
+        heading: notification.title,
+        bodyContent: `
+          <p>Hi <strong>${contactName}</strong>,</p>
+          <div class="info-box">
+            <p>${notification.message}</p>
+          </div>
+          <p>Please log in to your JIMS Placement Portal dashboard to review details and take any necessary next steps.</p>
+        `,
+        ctaText: 'Open Student Dashboard',
+        ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/student-dashboard`
+      });
+    }
+
+    if (channel === 'sms' && contactInfo && contactInfo !== 'No phone set') {
+      sendSmsAsync({
+        to: contactInfo,
+        message: `JIMS Placement Portal: ${notification.title} - ${notification.message}`
+      });
+    }
   }
 };
 

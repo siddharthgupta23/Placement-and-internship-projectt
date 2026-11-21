@@ -87,7 +87,7 @@ import CompanyDashboard from './pages/CompanyDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import JobListings from './pages/JobListings';
-// import Opportunities from './pages/Opportunities';
+import Opportunities from './pages/Opportunities';
 import About from './pages/About';
 import Contact from './pages/Contact';
 
@@ -133,7 +133,8 @@ function AppContent() {
                 )
               }
             />
-            {/* <Route path="/opportunities" element={<Opportunities />} /> */}
+            <Route path="/opportunities" element={<JobListings />} />
+            <Route path="/jobs" element={<JobListings />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
 
@@ -212,17 +213,6 @@ function AppContent() {
               element={
                 user?.role === 'student' ? (
                   <StudentDashboard />
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
-
-            <Route
-              path="/jobs"
-              element={
-                user?.role === 'student' ? (
-                  <JobListings />
                 ) : (
                   <Navigate to="/login" replace />
                 )

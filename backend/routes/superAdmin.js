@@ -330,7 +330,7 @@ router.get('/admins', async (req, res) => {
     try {
         const { page, limit, skip } = getPagination(req.query);
         const search = req.query.search?.trim();
-        const filter = { role: 'admin' };
+        const filter = { role: { $in: ['admin', 'super_admin'] } };
 
         if (search) {
             filter.$or = [
@@ -361,7 +361,7 @@ router.get('/admins', async (req, res) => {
 
 router.post('/admins', async (req, res) => {
     try {
-        const { name, email, password, userId } = req.body;
+        const { name, email, password, userId, role } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -381,7 +381,7 @@ router.post('/admins', async (req, res) => {
             email,
             password: hashedPassword,
             userId: userId || undefined,
-            role: 'admin',
+            role: role && ['admin', 'super_admin'].includes(role) ? role : 'admin',
         });
 
         res.status(201).json({
@@ -403,13 +403,13 @@ router.post('/admins', async (req, res) => {
 
 router.put('/admins/:id', async (req, res) => {
     try {
-        const admin = await User.findOne({ _id: req.params.id, role: 'admin' });
+        const admin = await User.findOne({ _id: req.params.id, role: { $in: ['admin', 'super_admin'] } });
 
         if (!admin) {
             return res.status(404).json({ error: 'Admin not found' });
         }
 
-        const { name, email, password, userId } = req.body;
+        const { name, email, password, userId, role } = req.body;
 
         if (email && email !== admin.email) {
             const existingEmail = await User.findOne({ email, _id: { $ne: admin._id } });
@@ -429,6 +429,9 @@ router.put('/admins/:id', async (req, res) => {
 
         if (name !== undefined) admin.name = name;
         if (password) admin.password = await bcrypt.hash(password, 10);
+        if (role && ['admin', 'super_admin'].includes(role)) {
+            admin.role = role;
+        }
 
         await admin.save();
 
@@ -446,6 +449,30 @@ router.put('/admins/:id', async (req, res) => {
     } catch (error) {
         console.error('Update admin error:', error);
         res.status(500).json({ error: 'Failed to update admin' });
+    }
+});
+
+router.post('/admins/:id/promote', async (req, res) => {
+    try {
+        const admin = await User.findById(req.params.id);
+        if (!admin) {
+            return res.status(404).json({ error: 'Admin user not found' });
+        }
+        admin.role = 'super_admin';
+        await admin.save();
+        res.json({
+            success: true,
+            message: `Successfully granted Super Admin rights to ${admin.name || admin.email}`,
+            admin: {
+                _id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                role: admin.role
+            }
+        });
+    } catch (error) {
+        console.error('Promote admin error:', error);
+        res.status(500).json({ error: 'Failed to promote admin' });
     }
 });
 

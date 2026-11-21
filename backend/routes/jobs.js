@@ -3,6 +3,8 @@ import Job from '../models/Job.js';
 import Application from '../models/Application.js';
 import StudentProfile from '../models/Student.js';
 import { createNotification } from '../services/notificationService.js';
+import { sendJobApplicationEmail } from '../services/emailService.js';
+import { sendJobApplicationSms } from '../services/smsService.js';
 
 const router = express.Router();
 
@@ -159,7 +161,7 @@ router.post('/:id/apply', async (req, res) => {
         }
 
         const student = await StudentProfile.findOne({ user: req.session.userId });
-        const job = await Job.findById(req.params.id);
+        const job = await Job.findById(req.params.id).populate('company', 'name');
         
         if (!student) return res.status(404).json({ error: 'Student profile not found' });
         if (!job) return res.status(404).json({ error: 'Job not found' });
@@ -183,7 +185,7 @@ router.post('/:id/apply', async (req, res) => {
         const application = await Application.create({
             student: student._id,
             job: job._id,
-            company: job.company,
+            company: job.company?._id || job.company,
             matchScore,
             status: 'Applied',
             answers: req.body.answers || [],
@@ -194,13 +196,36 @@ router.post('/:id/apply', async (req, res) => {
             }
         });
 
+        const companyName = job.company?.name || 'Corporate Partner';
+
+        // Direct email dispatch to student Gmail
+        const recipientEmail = student.email || req.session?.email;
+        if (recipientEmail && recipientEmail.includes('@')) {
+            sendJobApplicationEmail(
+                recipientEmail,
+                student.name || 'Candidate',
+                companyName,
+                job.role
+            );
+        }
+
+        // Direct SMS alert dispatch to student phone
+        if (student.phone) {
+            sendJobApplicationSms(
+                student.phone,
+                student.name || 'Candidate',
+                companyName,
+                job.role
+            );
+        }
+
         await createNotification({
             studentId: student._id,
             applicationId: application._id,
             jobId: job._id,
             type: 'application_submitted',
-            title: 'Application Submitted',
-            message: `Your application for ${job.role} was submitted successfully.`,
+            title: `Application Submitted — ${job.role}`,
+            message: `Your application for ${job.role} at ${companyName} was submitted successfully.`,
             channels: ['in_app', 'email', 'sms', 'push']
         });
 

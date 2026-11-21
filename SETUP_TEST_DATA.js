@@ -11,7 +11,7 @@ async function register() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      name: 'Dr. Rajesh Kumar',
+      name: 'Dr. m  m                      mmmRajesh Kumar',
       email: 'coordinator@college.edu',
       password: 'Coordinator@123'
     })

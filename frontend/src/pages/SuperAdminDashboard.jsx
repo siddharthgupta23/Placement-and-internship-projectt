@@ -29,7 +29,7 @@ const moduleMeta = {
 };
 
 const studentForm = { name: '', email: '', userId: '', password: '', branch: '', year: '', skills: '', experience: '', cgpa: '' };
-const adminForm = { name: '', email: '', userId: '', password: '' };
+const adminForm = { name: '', email: '', userId: '', password: '', role: 'admin' };
 const companyForm = { name: '', email: '', password: '', website: '', description: '', contactPerson: '', phone: '', status: 'approved' };
 
 const formatDate = (value) => value ? new Date(value).toLocaleDateString() : 'N/A';
@@ -247,7 +247,7 @@ const SuperAdminDashboard = () => {
         }
 
         if (record && type === 'admins') {
-            values = { name: record.name || '', email: record.email || '', userId: record.userId || '', password: '' };
+            values = { name: record.name || '', email: record.email || '', userId: record.userId || '', password: '', role: record.role || 'admin' };
         }
 
         if (record && type === 'companies') {
@@ -513,6 +513,20 @@ const SuperAdminDashboard = () => {
                     <input value={modal.values.email} onChange={(event) => updateModal('email', event.target.value)} placeholder="Email" className="rounded-xl border border-slate-200 px-4 py-3" />
                     <input value={modal.values.userId} onChange={(event) => updateModal('userId', event.target.value)} placeholder="Admin ID" className="rounded-xl border border-slate-200 px-4 py-3" />
                     <input type="password" value={modal.values.password} onChange={(event) => updateModal('password', event.target.value)} placeholder={`Password ${modal.mode === 'edit' ? '(optional)' : ''}`} className="rounded-xl border border-slate-200 px-4 py-3" />
+                    <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Privileges / Role</label>
+                        <select
+                            value={modal.values.role || 'admin'}
+                            onChange={(event) => updateModal('role', event.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm"
+                        >
+                            <option value="admin">TPO Admin (College Placement Admin)</option>
+                            <option value="super_admin">Super Admin (Full Platform & Access Rights)</option>
+                        </select>
+                        <p className="mt-1 text-2xs text-slate-400">
+                            Transferring or granting Super Admin rights gives full access to user management, system configs, and global logs.
+                        </p>
+                    </div>
                 </div>
             );
         }
@@ -617,7 +631,21 @@ const SuperAdminDashboard = () => {
                                     <tbody className="divide-y divide-slate-100">
                                         {adminsLoading ? <tr><td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-500">Loading admins...</td></tr> : admins.length === 0 ? <tr><td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-500">No admins found.</td></tr> : admins.map((admin) => (
                                             <tr key={admin._id}>
-                                                <td className="px-6 py-4"><p className="font-bold text-slate-900">{admin.name || 'Admin account'}</p><p className="mt-1 inline-flex items-center gap-2 text-sm text-slate-500"><Mail className="h-4 w-4" />{admin.email}</p></td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-bold text-slate-900">{admin.name || 'Admin account'}</p>
+                                                        {admin.role === 'super_admin' ? (
+                                                            <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-2xs font-extrabold text-purple-700 border border-purple-200">
+                                                                Super Admin
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-bold text-slate-600 border border-slate-200">
+                                                                Admin
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-1 inline-flex items-center gap-2 text-sm text-slate-500"><Mail className="h-4 w-4" />{admin.email}</p>
+                                                </td>
                                                 <td className="px-6 py-4 text-sm font-semibold text-slate-700">{admin.userId || 'N/A'}</td>
                                                 <td className="px-6 py-4 text-sm text-slate-600">{formatDate(admin.createdAt)}</td>
                                                 <td className="px-6 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => openModal('admins', 'edit', admin)} className="rounded-lg border border-slate-200 p-2 text-slate-500"><Edit className="h-4 w-4" /></button><button type="button" disabled={busyId === admin._id} onClick={() => deleteEntity('admins', admin._id, admin.name || admin.email)} className="rounded-lg border border-red-100 p-2 text-red-500 disabled:opacity-40"><Trash2 className="h-4 w-4" /></button></div></td>

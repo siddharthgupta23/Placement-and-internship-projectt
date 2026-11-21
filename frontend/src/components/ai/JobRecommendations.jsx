@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { Sparkles, Briefcase, ChevronRight, AlertCircle, MapPin, Building, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -13,7 +13,7 @@ const JobRecommendations = ({ studentId }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`http://localhost:5000/api/ai/recommend-jobs/${studentId}`, { withCredentials: true });
+      const res = await api.get(`/ai/recommend-jobs/${studentId}`);
       if (res.data && res.data.recommendations) {
         setRecommendations(res.data.recommendations);
       }

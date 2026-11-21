@@ -238,6 +238,317 @@
 // export default Navbar;
 
 
+// import { useState } from 'react';
+// import { Link, useLocation } from 'react-router-dom';
+// import { useAuth } from '../context/AuthContext';
+// import {
+//   LogOut,
+//   Briefcase,
+//   LayoutDashboard,
+//   Menu,
+//   X,
+// } from 'lucide-react';
+// import { getDashboardPath } from '../utils/rolePaths';
+// import NotificationBell from './NotificationBell';
+
+// const Navbar = () => {
+//   const { user, logout } = useAuth();
+//   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+//   const location = useLocation();
+
+//   const closeMenu = () => setMobileMenuOpen(false);
+
+//   const publicLinks = [
+//     { name: 'Home', to: '/' },
+//     // { name: 'Opportunities', to: '/opportunities' },
+//     { name: 'About Us', to: '/about' },
+//     { name: 'Contact', to: '/contact' },
+//   ];
+
+//   const linkClass = (path) =>
+//     `whitespace-nowrap transition-colors ${
+//       location.pathname === path
+//         ? 'font-semibold text-blue-700'
+//         : 'text-slate-600 hover:text-blue-700'
+//     }`;
+
+//   return (
+//     <>
+//       <nav className="fixed top-0 left-0 right-0 z-40 w-full border-b border-slate-200 bg-white shadow-sm">
+//         <div className="w-full px-6 sm:px-8 lg:px-12">
+//         <div className="flex min-h-[82px] w-full items-center justify-between gap-6">          
+// {/* JIMS Logo and portal name */}
+// <Link
+//   to="/"
+//   onClick={closeMenu}
+//   className="flex shrink-0 items-center gap-3"
+// >
+//   <img
+//     src="/images/jims-full-logo.png.png"
+//     alt="JIMS Logo"
+//     className="h-16 w-auto max-w-[170px] object-contain"
+//   />
+
+//   <div className="flex flex-col">
+//     <span className="text-lg font-bold tracking-tight text-blue-950 sm:text-xl">
+//       Placement Portal
+//     </span>
+//     <span className="text-xs text-slate-500 sm:text-sm">
+//       Career &amp; Internship Center
+//     </span>
+//   </div>
+// </Link>
+
+
+//           {/* Desktop navigation */}
+//           <div className=" ml-auto hidden items-center gap-5 lg:flex xl:gap-7">
+//             {!user ? (
+//               <>
+//                 <div className="flex items-center gap-4 xl:gap-5">
+//                   {publicLinks.map((item) => (
+//                     <Link
+//                       key={item.name}
+//                       to={item.to}
+//                       className={linkClass(item.to)}
+//                     >
+//                       {item.name}
+//                     </Link>
+//                   ))}
+//                 </div>
+
+//                 <div className="ml-1 flex items-center gap-3">
+//                   <Link
+//                     to="/login"
+//                     className="inline-flex min-h-12 items-center justify-center rounded-lg border border-blue-700 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+//                   >
+//                     Sign In
+//                   </Link>
+
+//                   <Link
+//                     to="/company-signup"
+//                     className="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white transition hover:bg-blue-800"
+//                   >
+//                     For Recruiters
+//                   </Link>
+//                 </div>
+//               </>
+//             ) : (
+//               <>
+//                 {user.role === 'student' && (
+//                   <>
+//                     <NotificationBell />
+
+//                     <Link
+//                       to="/student-dashboard"
+//                       className={`flex items-center gap-2 rounded-lg px-3 py-2 ${linkClass(
+//                         '/student-dashboard'
+//                       )}`}
+//                     >
+//                       <LayoutDashboard size={17} />
+//                       Dashboard
+//                     </Link>
+
+//                     <Link
+//                       to="/jobs"
+//                       className={`flex items-center gap-2 rounded-lg px-3 py-2 ${linkClass(
+//                         '/jobs'
+//                       )}`}
+//                     >
+//                       <Briefcase size={17} />
+//                       Explore Jobs
+//                     </Link>
+//                   </>
+//                 )}
+
+//                 {user.role === 'company' && (
+//                   <Link
+//                     to="/company-dashboard"
+//                     className={`flex items-center gap-2 rounded-lg px-3 py-2 ${linkClass(
+//                       '/company-dashboard'
+//                     )}`}
+//                   >
+//                     <LayoutDashboard size={17} />
+//                     Company Dashboard
+//                   </Link>
+//                 )}
+
+//                 {user.role === 'admin' && (
+//                   <Link
+//                     to="/admin-dashboard"
+//                     className={`flex items-center gap-2 rounded-lg px-3 py-2 ${linkClass(
+//                       '/admin-dashboard'
+//                     )}`}
+//                   >
+//                     <LayoutDashboard size={17} />
+//                     TPO Admin
+//                   </Link>
+//                 )}
+
+//                 {user.role === 'super_admin' && (
+//                   <Link
+//                     to={getDashboardPath(user.role)}
+//                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-600 transition hover:bg-blue-50 hover:text-blue-700"
+//                   >
+//                     <LayoutDashboard size={17} />
+//                     Super Admin
+//                   </Link>
+//                 )}
+
+//                 <button
+//                   onClick={logout}
+//                   className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-600 hover:text-white"
+//                 >
+//                   <LogOut size={17} />
+//                   Logout
+//                 </button>
+//               </>
+//             )}
+//           </div>
+
+//           {/* Mobile controls */}
+//           <div className="flex items-center gap-2 lg:hidden">
+//             {user?.role === 'student' && <NotificationBell />}
+
+//             <button
+//               type="button"
+//               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+//               className="rounded-lg p-2.5 text-slate-700 transition hover:bg-slate-100"
+//               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+//               aria-expanded={mobileMenuOpen}
+//             >
+//               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Mobile dropdown */}
+//       {mobileMenuOpen && (
+//         <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg lg:hidden">
+//           {!user ? (
+//             <div className="space-y-1">
+//               {publicLinks.map((item) => (
+//                 <Link
+//                   key={item.name}
+//                   to={item.to}
+//                   onClick={closeMenu}
+//                   className={`block rounded-lg px-4 py-3 text-sm ${linkClass(
+//                     item.to
+//                   )} hover:bg-blue-50`}
+//                 >
+//                   {item.name}
+//                 </Link>
+//               ))}
+
+//               <div className="grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+//                 <Link
+//                   to="/login"
+//                   onClick={closeMenu}
+//                   className="rounded-lg border border-blue-700 px-4 py-3 text-center text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+//                 >
+//                   Sign In
+//                 </Link>
+
+//                 <Link
+//                   to="/company-signup"
+//                   onClick={closeMenu}
+//                   className="rounded-lg bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-800"
+//                 >
+//                   For Recruiters
+//                 </Link>
+//               </div>
+//             </div>
+//           ) : (
+//             <div className="space-y-2">
+//               <div className="mb-3 rounded-lg bg-blue-50 px-4 py-3">
+//                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+//                   Signed in as
+//                 </p>
+//                 <p className="mt-1 text-sm font-semibold capitalize text-blue-950">
+//                   {user.role.replace('_', ' ')}
+//                 </p>
+//               </div>
+
+//               {user.role === 'student' && (
+//                 <>
+//                   <Link
+//                     to="/student-dashboard"
+//                     onClick={closeMenu}
+//                     className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-blue-50"
+//                   >
+//                     <LayoutDashboard size={19} className="text-blue-700" />
+//                     Student Dashboard
+//                   </Link>
+
+//                   <Link
+//                     to="/jobs"
+//                     onClick={closeMenu}
+//                     className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-blue-50"
+//                   >
+//                     <Briefcase size={19} className="text-blue-700" />
+//                     Explore Jobs
+//                   </Link>
+//                 </>
+//               )}
+
+//               {user.role === 'company' && (
+//                 <Link
+//                   to="/company-dashboard"
+//                   onClick={closeMenu}
+//                   className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-blue-50"
+//                 >
+//                   <LayoutDashboard size={19} className="text-blue-700" />
+//                   Company Dashboard
+//                 </Link>
+//               )}
+
+//               {user.role === 'admin' && (
+//                 <Link
+//                   to="/admin-dashboard"
+//                   onClick={closeMenu}
+//                   className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-blue-50"
+//                 >
+//                   <LayoutDashboard size={19} className="text-blue-700" />
+//                   TPO Admin Dashboard
+//                 </Link>
+//               )}
+
+//               {user.role === 'super_admin' && (
+//                 <Link
+//                   to={getDashboardPath(user.role)}
+//                   onClick={closeMenu}
+//                   className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-blue-50"
+//                 >
+//                   <LayoutDashboard size={19} className="text-blue-700" />
+//                   Super Admin Panel
+//                 </Link>
+//               )}
+
+//               <button
+//                 type="button"
+//                 onClick={() => {
+//                   closeMenu();
+//                   logout();
+//                 }}
+//                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+//               >
+//                 <LogOut size={18} />
+//                 Logout
+//               </button>
+//             </div>
+//           )}
+//         </div>
+//       )}
+//     </nav>
+//     <div className="h-[82px]" aria-hidden="true" />
+//   </>
+//   );
+// };
+
+// export default Navbar;
+
+
+
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -260,7 +571,7 @@ const Navbar = () => {
 
   const publicLinks = [
     { name: 'Home', to: '/' },
-    // { name: 'Opportunities', to: '/opportunities' },
+    { name: 'Opportunities', to: '/jobs' },
     { name: 'About Us', to: '/about' },
     { name: 'Contact', to: '/contact' },
   ];
@@ -273,9 +584,8 @@ const Navbar = () => {
     }`;
 
   return (
-    <>
-      <nav className="fixed top-0 left-0 right-0 z-40 w-full border-b border-slate-200 bg-white shadow-sm">
-        <div className="w-full px-6 sm:px-8 lg:px-12">
+    <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+      <div className="w-full px-6 sm:px-8 lg:px-12">
         <div className="flex min-h-[82px] w-full items-center justify-between gap-6">          
 {/* JIMS Logo and portal name */}
 <Link
@@ -540,8 +850,6 @@ const Navbar = () => {
         </div>
       )}
     </nav>
-    <div className="h-[82px]" aria-hidden="true" />
-  </>
   );
 };
 

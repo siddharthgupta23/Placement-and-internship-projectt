@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // ─── Env validation ───────────────────────────────────────────────────────────
-const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true';
-const SMTP_HOST = process.env.SMTP_HOST;
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED !== 'false' && Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 
@@ -14,21 +14,39 @@ let transporter = null;
 
 function createTransporter() {
   if (!EMAIL_ENABLED) {
-    console.log('[EmailService] EMAIL_ENABLED=false — emails will be logged to console only.');
+    console.log('[EmailService] EMAIL_ENABLED=false or credentials missing — emails will be logged to console only.');
     return null;
   }
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    console.warn('[EmailService] SMTP credentials missing (SMTP_HOST, SMTP_USER, SMTP_PASS). Emails will be console-logged.');
+  if (!SMTP_USER || !SMTP_PASS) {
+    console.warn('[EmailService] SMTP credentials missing (SMTP_USER, SMTP_PASS). Emails will be console-logged.');
     return null;
   }
 
+  const cleanPass = (SMTP_PASS || '').replace(/\s+/g, '');
+  const isGmail = (SMTP_HOST || '').toLowerCase().includes('gmail');
+
+  if (isGmail) {
+    console.log(`[EmailService] Initializing Gmail SMTP transport for: ${SMTP_USER}`);
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: SMTP_USER,
+        pass: cleanPass
+      }
+    });
+  }
+
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const secure = port === 465 || (process.env.SMTP_SECURE === 'true' && port !== 587);
+
+  console.log(`[EmailService] Initializing SMTP transport on ${SMTP_HOST}:${port} (secure: ${secure})`);
   return nodemailer.createTransport({
     host: SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
+    port,
+    secure,
     auth: {
       user: SMTP_USER,
-      pass: SMTP_PASS
+      pass: cleanPass
     }
   });
 }
@@ -176,6 +194,26 @@ export async function sendEmailAsync({ to, subject, heading, bodyContent, ctaTex
 }
 
 // ─── Convenience template wrappers ───────────────────────────────────────────
+
+export function sendJobApplicationEmail(to, studentName, companyName, jobRole) {
+  sendEmailAsync({
+    to,
+    subject: `Application Submitted — ${jobRole} at ${companyName}`,
+    heading: '🎉 Application Received Successfully',
+    bodyContent: `
+      <p>Hi <strong>${studentName}</strong>,</p>
+      <p>Your application for <strong>${jobRole}</strong> at <strong>${companyName}</strong> has been successfully received by the JIMS Placement Portal.</p>
+      <div class="info-box">
+        <p><strong>Company:</strong> ${companyName}</p>
+        <p><strong>Position:</strong> ${jobRole}</p>
+        <p><strong>Current Status:</strong> <span style="color:#2563eb;font-weight:700">Applied</span></p>
+        <p><strong>Submitted On:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+      <p>The Training & Placement Cell and the corporate recruitment team will review your application. You will be notified via email when your profile moves to the next evaluation stage.</p>`,
+    ctaText: 'Track My Applications',
+    ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/student-dashboard?tab=applications`
+  });
+}
 
 export function sendApplicationStatusEmail(to, studentName, companyName, jobRole, newStatus) {
   const statusColors = {

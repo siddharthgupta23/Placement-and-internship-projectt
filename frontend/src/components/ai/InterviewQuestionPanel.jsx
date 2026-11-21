@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { Sparkles, Copy, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 const InterviewQuestionPanel = () => {
@@ -21,12 +21,12 @@ const InterviewQuestionPanel = () => {
     setLoading(true);
     try {
       const skillsArr = skills.split(',').map(s => s.trim()).filter(Boolean);
-      const res = await axios.post('http://localhost:5000/api/ai/interview-questions', {
+      const res = await api.post('/ai/interview-questions', {
         jobTitle,
         requiredSkills: skillsArr,
         includeProfile,
         regenerate: true
-      }, { withCredentials: true });
+      });
       
       setQuestions(res.data);
     } catch (err) {
