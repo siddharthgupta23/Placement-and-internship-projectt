@@ -91,6 +91,7 @@ app.use(session({
 
 // Implemented Routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/student',StudentRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/admin',adminRoutes);
