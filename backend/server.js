@@ -103,26 +103,31 @@ app.use(session({
 // Setup logic to verify sessions within controllers vs dedicated middleware (to meet rule)
 // Actually "NO JWT, NO middleware" probably refers to no complicated auth middleware. We'll simply check req.session in endpoints instead.
 
-// Implemented Routes
-app.use('/api/auth', authRoutes);
-app.use('/auth', authRoutes);
-app.use('/api/student',StudentRoutes);
-app.use('/api/company', companyRoutes);
-app.use('/api/admin',adminRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/super-admin', superAdminRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/notifications', notificationRoutes);
-app.use('/api/mock-interview', mockInterviewRoutes);
-app.use('/api/skill-gap', skillGapRoutes);
-app.use('/api/aptitude', aptitudeRoutes);
-app.use('/api/prep', prepRoutes);
-app.use('/api/interviews', interviewRoutes);
-app.use('/api/calendar', calendarRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/eligibility', eligibilityRoutes);
-app.use('/api/events', eventRoutes);
+// Implemented Routes - mounted with both /api prefix and root aliases for bulletproof routing
+const apiRoutes = [
+    ['/auth', authRoutes],
+    ['/student', StudentRoutes],
+    ['/company', companyRoutes],
+    ['/admin', adminRoutes],
+    ['/jobs', jobRoutes],
+    ['/super-admin', superAdminRoutes],
+    ['/ai', aiRoutes],
+    ['/notifications', notificationRoutes],
+    ['/mock-interview', mockInterviewRoutes],
+    ['/skill-gap', skillGapRoutes],
+    ['/aptitude', aptitudeRoutes],
+    ['/prep', prepRoutes],
+    ['/interviews', interviewRoutes],
+    ['/calendar', calendarRoutes],
+    ['/reviews', reviewRoutes],
+    ['/eligibility', eligibilityRoutes],
+    ['/events', eventRoutes],
+];
+
+apiRoutes.forEach(([prefix, router]) => {
+    app.use('/api' + prefix, router);
+    app.use(prefix, router);
+});
 
 io.on('connection', (socket) => {
     const { studentId } = socket.handshake.query || {};

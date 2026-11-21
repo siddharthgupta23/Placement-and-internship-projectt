@@ -10,11 +10,75 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/student/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/jobs/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/jobs",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/company/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/super-admin/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/ai/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
       "source": "/notifications/(.*)",
       "destination": "/api/index.js"
     },
     {
-      "source": "/((?!api/|auth/|notifications/).*)",
+      "source": "/mock-interview/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/skill-gap/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/aptitude/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/prep/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/interviews/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/calendar/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/reviews/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/eligibility/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/events/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
