@@ -10,7 +10,11 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/((?!api/|auth/).*)",
+      "source": "/notifications/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/((?!api/|auth/|notifications/).*)",
       "destination": "/index.html"
     }
   ]

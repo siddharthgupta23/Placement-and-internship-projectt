@@ -99,6 +99,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/notifications', notificationRoutes);
 app.use('/api/mock-interview', mockInterviewRoutes);
 app.use('/api/skill-gap', skillGapRoutes);
 app.use('/api/aptitude', aptitudeRoutes);
