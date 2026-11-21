@@ -130,6 +130,26 @@ connect(process.env.MONGO_URI)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+const distPath = path.join(__dirname, '../dist');
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(distPath));
+app.use(express.static(frontendDistPath));
+
+app.get('*', (req, res, next) => {
+    if (req.url.startsWith('/api') || req.url.startsWith('/notifications') || req.url.startsWith('/auth')) {
+        return next();
+    }
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            const fallbackPath = path.join(frontendDistPath, 'index.html');
+            res.sendFile(fallbackPath, (err2) => {
+                if (err2) next();
+            });
+        }
+    });
+});
+
 if (!process.env.VERCEL) {
     const PORT = process.env.PORT || 5089;
     httpServer.listen(PORT, () => console.log(`Server running on ${PORT}`));
