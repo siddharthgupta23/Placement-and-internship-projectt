@@ -42,6 +42,20 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: { origin: true, credentials: true }
 });
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept');
+    }
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
+
 app.use(cors({ 
     origin: true,
     credentials: true // Crucial for session cookies to be sent
@@ -135,7 +149,8 @@ const frontendDistPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 app.use(express.static(frontendDistPath));
 
-app.get('*', (req, res, next) => {
+app.use((req, res, next) => {
+    if (req.method !== 'GET') return next();
     if (req.url.startsWith('/api') || req.url.startsWith('/notifications') || req.url.startsWith('/auth')) {
         return next();
     }
