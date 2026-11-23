@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node backend/server.js",
-    "build": "npm run build --prefix frontend && node -e \"import('fs').then(fs => fs.cpSync('frontend/dist', 'dist', {recursive:true}))\""
+    "build": "npm run build --prefix frontend && node copy-dist.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

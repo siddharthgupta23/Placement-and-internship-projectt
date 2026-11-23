@@ -117,10 +117,10 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className={isDedicatedWorkspace ? "h-screen w-full overflow-hidden bg-gray-50 text-gray-900 font-sans" : "min-h-screen bg-gray-50 text-gray-900 font-sans"}>
       {!isDedicatedWorkspace && <Navbar />}
 
-      <main className={isDedicatedWorkspace ? "w-full min-h-screen p-0 m-0" : "container mx-auto px-4 py-8"}>
+      <main className={isDedicatedWorkspace ? "w-full h-full p-0 m-0 overflow-hidden" : "container mx-auto px-4 py-8"}>
         <Routes>
             {/* Homepage */}
             <Route

@@ -1348,9 +1348,9 @@ const StudentDashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50/70 flex flex-col lg:flex-row w-full font-sans text-slate-800 antialiased">
+        <div className="h-screen w-full bg-slate-50 flex flex-col lg:flex-row font-sans text-slate-800 antialiased overflow-hidden">
             {/* Mobile / Tablet Header Bar (< lg) */}
-            <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
+            <header className="lg:hidden shrink-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs z-30">
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
@@ -1395,11 +1395,11 @@ const StudentDashboard = () => {
                 />
             )}
 
-            {/* SIDEBAR (Sticky on Desktop, Slide-over Drawer on Mobile & Tablet) */}
+            {/* SIDEBAR (Full height static on desktop, slide-over drawer on mobile/tablet) */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-xl lg:shadow-none transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+                className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-xl lg:shadow-none transition-all duration-300 ease-in-out lg:static lg:h-full lg:translate-x-0 ${
                     sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
-                } w-72 ${
+                } w-72 shrink-0 ${
                     mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
@@ -1528,9 +1528,9 @@ const StudentDashboard = () => {
             </aside>
 
             {/* MAIN WORKSPACE CONTENT: NO WASTED SPACE */}
-            <main className="flex-1 min-w-0 w-full overflow-y-auto">
+            <main className="flex-1 min-w-0 w-full h-full flex flex-col overflow-hidden bg-slate-50/70">
                 {/* Top Desktop Bar */}
-                <div className="hidden lg:flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-2xs">
+                <header className="hidden lg:flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shrink-0 z-20 shadow-2xs">
                     <div>
                         <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
                             {tabTitles[activeTab] || activeTab.replace('_', ' ')}
@@ -1547,10 +1547,10 @@ const StudentDashboard = () => {
                             Explore Opportunities
                         </Link>
                     </div>
-                </div>
+                </header>
 
                 {/* Workspace Content: edge-to-edge with no space wasted */}
-                <div className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
+                <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6 lg:p-8 space-y-6">
                     {activeTab === 'jobs' && (
                         <div className="space-y-6 w-full">
                             <JobListings isEmbedded={true} onApplicationSuccess={fetchData} />
@@ -1558,11 +1558,11 @@ const StudentDashboard = () => {
                     )}
 
                 {activeTab === 'profile' && (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
-                        {/* Profile Card */}
-                        <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-lg transition relative">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+                        {/* Profile Details Card (7 cols on lg+) */}
+                        <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition relative">
                             {!editMode && (
-                                <button onClick={() => { setEditProfileForm(profile); setEditMode(true); }} className="absolute top-4 right-4 text-slate-400 hover:text-blue-600 transition">
+                                <button onClick={() => { setEditProfileForm(profile); setEditMode(true); }} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-400 hover:text-blue-600 transition">
                                     <Edit2 className="w-5 h-5" />
                                 </button>
                             )}
@@ -1627,87 +1627,126 @@ const StudentDashboard = () => {
                             )}
                         </div>
 
-                        {/* Resume Upload */}
-                        <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-lg transition">
-                            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-indigo-500" />
-                                Resume Upload & Auto-Scan
-                            </h3>
-                            <form onSubmit={handleUpload} className="space-y-4">
-                                {profile.resumeUrl && (
-                                    <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg border border-green-100 mb-2">
-                                        <CheckCircle className="w-4 h-4 shrink-0" /> 
-                                        <span className="truncate">Active: <span className="font-semibold">{profile.resumeUrl}</span></span>
-                                    </div>
-                                )}
-
-                                <div className="border-2 border-dashed border-blue-200 hover:border-blue-400 rounded-xl p-6 text-center bg-blue-50/40 hover:bg-blue-50/80 transition cursor-pointer relative">
-                                    <input 
-                                        type="file" 
-                                        accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                        onChange={handleFileChange} 
-                                    />
-                                    <Upload className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                                    <p className="text-sm text-slate-700 font-semibold">{file ? file.name : 'Click or drag resume here'}</p>
-                                    <p className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX up to 5 MB • Instant AI extraction</p>
-                                </div>
-
-                                {uploadProgress > 0 && (
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between text-xs font-semibold text-blue-700">
-                                            <span>{uploadProgress === 100 ? 'Processing & Extracting...' : 'Uploading Resume...'}</span>
-                                            <span>{uploadProgress}%</span>
+                        {/* Right Column: Resume Upload & Placement Checklist (5 cols on lg+) */}
+                        <div className="lg:col-span-5 space-y-6">
+                            {/* Resume Upload Card */}
+                            <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+                                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-indigo-500" />
+                                    Resume Upload & Auto-Scan
+                                </h3>
+                                <form onSubmit={handleUpload} className="space-y-4">
+                                    {profile.resumeUrl && (
+                                        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg border border-green-100 mb-2">
+                                            <CheckCircle className="w-4 h-4 shrink-0" /> 
+                                            <span className="truncate">Active: <span className="font-semibold">{profile.resumeUrl}</span></span>
                                         </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                            <div 
-                                                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${uploadProgress}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {uploadError && (
-                                    <div className="p-3 bg-red-50 text-red-700 text-xs font-medium rounded-xl border border-red-200 flex items-center justify-between gap-2">
-                                        <span>{uploadError}</span>
-                                        {file && (
-                                            <button 
-                                                type="button" 
-                                                onClick={handleUpload}
-                                                className="underline font-bold hover:text-red-900 shrink-0"
-                                            >
-                                                Retry
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-
-                                {uploadMsg && (
-                                    <div className="text-xs text-emerald-700 bg-emerald-50 p-3 rounded-xl font-semibold border border-emerald-200 animate-fade-in flex items-center gap-1.5">
-                                        <CheckCircle className="w-4 h-4 shrink-0" />
-                                        <span>{uploadMsg}</span>
-                                    </div>
-                                )}
-
-                                <button 
-                                    type="submit" 
-                                    disabled={!file || uploading} 
-                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-2.5 rounded-xl disabled:opacity-40 shadow-sm transition flex items-center justify-center gap-2"
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Clock className="w-4 h-4 animate-spin" />
-                                            <span>Processing...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="w-4 h-4" />
-                                            <span>Upload & Scan Resume</span>
-                                        </>
                                     )}
-                                </button>
-                            </form>
+
+                                    <div className="border-2 border-dashed border-blue-200 hover:border-blue-400 rounded-xl p-6 text-center bg-blue-50/40 hover:bg-blue-50/80 transition cursor-pointer relative">
+                                        <input 
+                                            type="file" 
+                                            accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                            onChange={handleFileChange} 
+                                        />
+                                        <Upload className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                                        <p className="text-sm text-slate-700 font-semibold">{file ? file.name : 'Click or drag resume here'}</p>
+                                        <p className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX up to 5 MB • Instant AI extraction</p>
+                                    </div>
+
+                                    {uploadProgress > 0 && (
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between text-xs font-semibold text-blue-700">
+                                                <span>{uploadProgress === 100 ? 'Processing & Extracting...' : 'Uploading Resume...'}</span>
+                                                <span>{uploadProgress}%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                                <div 
+                                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {uploadError && (
+                                        <div className="p-3 bg-red-50 text-red-700 text-xs font-medium rounded-xl border border-red-200 flex items-center justify-between gap-2">
+                                            <span>{uploadError}</span>
+                                            {file && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={handleUpload}
+                                                    className="underline font-bold hover:text-red-900 shrink-0"
+                                                >
+                                                    Retry
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {uploadMsg && (
+                                        <div className="text-xs text-emerald-700 bg-emerald-50 p-3 rounded-xl font-semibold border border-emerald-200 animate-fade-in flex items-center gap-1.5">
+                                            <CheckCircle className="w-4 h-4 shrink-0" />
+                                            <span>{uploadMsg}</span>
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={!file || uploading} 
+                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-2.5 rounded-xl disabled:opacity-40 shadow-sm transition flex items-center justify-center gap-2"
+                                    >
+                                        {uploading ? (
+                                            <>
+                                                <Clock className="w-4 h-4 animate-spin" />
+                                                <span>Processing...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-4 h-4" />
+                                                <span>Upload & Scan Resume</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Placement Readiness & Profile Status Card */}
+                            <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/70 p-6 rounded-2xl border border-blue-100 shadow-2xs space-y-3">
+                                <div className="flex items-center gap-2.5">
+                                    <Sparkles className="w-5 h-5 text-blue-600 shrink-0" />
+                                    <h4 className="font-bold text-sm text-slate-900">Career &amp; Placement Readiness</h4>
+                                </div>
+                                <ul className="text-xs text-slate-600 space-y-2.5">
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        <span>Profile details complete ({profile.branch || 'MCA'} • {profile.year || '1st Year'})</span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        {profile.skills?.length >= 5 ? (
+                                            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        ) : (
+                                            <Target className="w-4 h-4 text-amber-500 shrink-0" />
+                                        )}
+                                        <span>{profile.skills?.length || 0} skills highlighted for AI recruiter matching</span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        {profile.resumeUrl ? (
+                                            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        ) : (
+                                            <Target className="w-4 h-4 text-amber-500 shrink-0" />
+                                        )}
+                                        <span>{profile.resumeUrl ? 'AI-Scanned Resume active for applications' : 'Upload your resume for instant matching'}</span>
+                                    </li>
+                                </ul>
+                                <div className="pt-2 border-t border-blue-100/80 flex items-center justify-between">
+                                    <span className="text-3xs text-blue-700 font-bold uppercase tracking-wider">Placement Portal Verified</span>
+                                    <Link to="/jobs" className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1">
+                                        Browse Campus Drives <ChevronRight className="w-3.5 h-3.5" />
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
