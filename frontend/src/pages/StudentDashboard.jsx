@@ -1078,8 +1078,15 @@
 
 import { useState, useEffect } from 'react';
 import api from '../api';
-import { Upload, FileText, CheckCircle, Clock, XCircle, ChevronRight, Briefcase, Edit2, X } from 'lucide-react';
+import { 
+  Upload, FileText, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, 
+  Briefcase, Edit2, X, Menu, User, Bot, Target, CheckSquare, BookOpen, 
+  CalendarDays, Star, ShieldCheck, Sparkles, Bell, LogOut, GraduationCap, 
+  ExternalLink, Layers
+} from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
 import JobListings from './JobListings';
 import InterviewQuestionPanel from '../components/ai/InterviewQuestionPanel';
 import JobRecommendations from '../components/ai/JobRecommendations';
@@ -1092,10 +1099,14 @@ import PlacementCalendarPanel from '../components/dashboard/PlacementCalendarPan
 import CompanyReviewsPanel from '../components/dashboard/CompanyReviewsPanel';
 import EligibilityCheckerPanel from '../components/dashboard/EligibilityCheckerPanel';
 const StudentDashboard = () => {
+    
     const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const tabFromUrl = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState(tabFromUrl || 'profile');
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
     useEffect(() => {
         const tab = searchParams.get('tab');
@@ -1275,51 +1286,279 @@ const StudentDashboard = () => {
         return <Clock className="w-4 h-4 text-slate-500" />;
     };
 
-    if (!profile) return <div className="text-center mt-20 animate-pulse text-lg text-slate-500">Loading dashboard...</div>;
+    const navSections = [
+        {
+            heading: 'Opportunities',
+            items: [
+                { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase },
+                { id: 'applications', label: 'My Applications', icon: FileText, badge: applications?.length || 0 },
+            ]
+        },
+        {
+            heading: 'AI & Preparation',
+            items: [
+                { id: 'mock_interview', label: 'AI Mock Interview', icon: Bot },
+                { id: 'aptitude', label: 'Aptitude Tests', icon: CheckSquare },
+                { id: 'prep', label: 'Interview Prep', icon: BookOpen },
+                { id: 'skill_gap', label: 'Skill Gap Diagnostic', icon: Target },
+                { id: 'ai', label: 'AI Job Match', icon: Sparkles },
+            ]
+        },
+        {
+            heading: 'Tracking & Campus',
+            items: [
+                { id: 'interviews', label: 'My Interviews', icon: Clock },
+                { id: 'calendar', label: 'Placement Calendar', icon: CalendarDays },
+                { id: 'reviews', label: 'Company Reviews', icon: Star },
+                { id: 'eligibility', label: 'Eligibility Checker', icon: ShieldCheck },
+            ]
+        },
+        {
+            heading: 'Account',
+            items: [
+                { id: 'profile', label: 'Profile & Resume', icon: User },
+                { id: 'notifications', label: 'Alert Preferences', icon: Bell },
+            ]
+        }
+    ];
+
+    const tabTitles = {
+        jobs: 'Jobs & Placement Drives',
+        profile: 'Student Profile & Resume',
+        applications: 'Application History & Status',
+        mock_interview: 'AI Simulated Mock Interview',
+        skill_gap: 'Skill Gap Diagnostic & Learning Path',
+        aptitude: 'Aptitude & Technical Assessments',
+        prep: 'Interview Preparation Hub',
+        interviews: 'Scheduled Interview Rounds',
+        calendar: 'Campus Placement Calendar',
+        reviews: 'Peer Company Reviews',
+        eligibility: 'Eligibility Checker',
+        ai: 'AI Job Matching & Insights',
+        notifications: 'Alert & Notification Preferences'
+    };
+
+    if (!profile) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+            <div className="text-center space-y-3">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="text-slate-600 font-semibold text-sm">Loading Student Workspace...</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6 animate-fade-in pb-12">
-            {/* Tab Navigation */}
-            <div className="flex gap-2 p-1.5 bg-white/80 backdrop-blur-md rounded-2xl w-full max-w-6xl mx-auto overflow-x-auto shadow-xs border border-slate-200/80">
-                {[
-                    { id: 'jobs', label: '💼 Jobs & Internships' },
-                    { id: 'profile', label: '👤 Profile & Resume' },
-                    { id: 'applications', label: '📄 Applications' },
-                    { id: 'mock_interview', label: '🎙️ AI Mock Interview' },
-                    { id: 'skill_gap', label: '🎯 Skill Gap' },
-                    { id: 'aptitude', label: '📝 Aptitude Test' },
-                    { id: 'prep', label: '📚 Interview Prep' },
-                    { id: 'interviews', label: '📅 My Interviews' },
-                    { id: 'calendar', label: '🗓️ Calendar' },
-                    { id: 'reviews', label: '⭐ Company Reviews' },
-                    { id: 'eligibility', label: '🔍 Eligibility' },
-                    { id: 'ai', label: '🤖 AI Job Match' },
-                    { id: 'notifications', label: '🔔 Settings' }
-                ].map(tab => (
+        <div className="min-h-screen bg-slate-50/70 flex flex-col lg:flex-row w-full font-sans text-slate-800 antialiased">
+            {/* Mobile / Tablet Header Bar (< lg) */}
+            <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-3">
                     <button
-                        key={tab.id}
-                        onClick={() => handleTabChange(tab.id)}
-                        className={`py-2.5 px-4 rounded-xl font-semibold tracking-tight text-xs md:text-sm transition-all whitespace-nowrap ${
-                            activeTab === tab.id 
-                                ? 'bg-blue-600 text-white shadow-xs' 
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`}
+                        type="button"
+                        onClick={() => setMobileDrawerOpen(true)}
+                        className="p-2 -ml-1 text-slate-700 hover:text-blue-700 hover:bg-slate-100 rounded-xl transition"
+                        aria-label="Open navigation sidebar"
                     >
-                        {tab.label}
+                        <Menu className="w-6 h-6" />
                     </button>
-                ))}
-            </div>
+                    <Link to="/" className="flex items-center gap-2.5">
+                        <img
+                            src="/images/jims-full-logo.png.png"
+                            alt="JIMS Logo"
+                            className="h-9 w-auto object-contain"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900 leading-tight">JIMS Placement</span>
+                            <span className="text-3xs text-blue-600 font-semibold uppercase tracking-wider">Student Portal</span>
+                        </div>
+                    </Link>
+                </div>
 
-            {/* Content Areas */}
-            <div className="mt-8 max-w-6xl mx-auto">
-                {activeTab === 'jobs' && (
-                    <div className="space-y-6">
-                        <JobListings isEmbedded={true} onApplicationSuccess={fetchData} />
+                <div className="flex items-center gap-2">
+                    <NotificationBell />
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('profile')}
+                        className="w-8 h-8 rounded-xl bg-linear-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-xs"
+                        title="Profile"
+                    >
+                        {profile?.name ? profile.name.substring(0, 2).toUpperCase() : 'ST'}
+                    </button>
+                </div>
+            </header>
+
+            {/* Mobile / Tablet Drawer Backdrop */}
+            {mobileDrawerOpen && (
+                <div
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 lg:hidden transition-opacity"
+                />
+            )}
+
+            {/* SIDEBAR (Sticky on Desktop, Slide-over Drawer on Mobile & Tablet) */}
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col justify-between shadow-xl lg:shadow-none transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+                    sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
+                } w-72 ${
+                    mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                {/* Sidebar Header & Brand */}
+                <div className="h-18 flex items-center justify-between px-4 sm:px-5 border-b border-slate-100 bg-white shrink-0">
+                    <Link to="/" className="flex items-center gap-3 overflow-hidden group">
+                        <img
+                            src="/images/jims-full-logo.png.png"
+                            alt="JIMS Logo"
+                            className="h-10 w-auto object-contain shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                        {!sidebarCollapsed && (
+                            <div className="transition-opacity duration-200">
+                                <h1 className="font-extrabold text-sm tracking-tight text-slate-900 leading-tight">
+                                    JIMS Placement
+                                </h1>
+                                <p className="text-3xs text-blue-600 font-bold uppercase tracking-wider">Student Portal</p>
+                            </div>
+                        )}
+                    </Link>
+
+                    {/* Desktop collapse toggle */}
+                    <button
+                        type="button"
+                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        className="hidden lg:flex p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition"
+                        title={sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                    >
+                        {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                    </button>
+
+                    {/* Mobile close button */}
+                    <button
+                        type="button"
+                        onClick={() => setMobileDrawerOpen(false)}
+                        className="lg:hidden p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900"
+                        aria-label="Close sidebar"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Sidebar Nav Items */}
+                <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
+                    {navSections.map((sec, idx) => (
+                        <div key={idx} className="space-y-1">
+                            {!sidebarCollapsed && (
+                                <p className="px-3 text-3xs font-extrabold uppercase tracking-widest text-slate-400 mb-1.5">
+                                    {sec.heading}
+                                </p>
+                            )}
+                            {sec.items.map(item => {
+                                const Icon = item.icon;
+                                const isActive = activeTab === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                            handleTabChange(item.id);
+                                            setMobileDrawerOpen(false);
+                                        }}
+                                        title={sidebarCollapsed ? item.label : undefined}
+                                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group cursor-pointer ${
+                                            isActive
+                                                ? 'bg-blue-600 text-white shadow-sm font-extrabold'
+                                                : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50/70'
+                                        }`}
+                                    >
+                                        <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-600'}`} />
+                                        {!sidebarCollapsed && (
+                                            <span className="truncate text-left flex-1">{item.label}</span>
+                                        )}
+                                        {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                                            <span className={`text-2xs font-extrabold px-2 py-0.5 rounded-full ${
+                                                isActive ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Sidebar Footer: Student Profile + Actions */}
+                <div className="p-3 border-t border-slate-100 bg-slate-50/80 shrink-0 space-y-2">
+                    <div className={`flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/80 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                        <div className="w-9 h-9 rounded-xl bg-linear-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
+                            {profile?.name ? profile.name.substring(0, 2).toUpperCase() : 'ST'}
+                        </div>
+                        {!sidebarCollapsed && (
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-800 truncate">{profile?.name || 'Student'}</p>
+                                <p className="text-3xs text-slate-500 truncate">{profile?.branch || 'MCA'} • {profile?.year || '1st Year'}</p>
+                            </div>
+                        )}
+                        {!sidebarCollapsed && (
+                            <NotificationBell />
+                        )}
                     </div>
-                )}
+
+                    <div className="flex gap-2">
+                        <Link
+                            to="/jobs"
+                            className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition ${sidebarCollapsed ? 'w-full' : 'flex-1'}`}
+                            title="Explore Jobs"
+                        >
+                            <Briefcase className="w-3.5 h-3.5" />
+                            {!sidebarCollapsed && <span>Explore</span>}
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={() => logout && logout()}
+                            className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition ${sidebarCollapsed ? 'w-full' : 'flex-1'}`}
+                            title="Sign Out"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            {!sidebarCollapsed && <span>Logout</span>}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            {/* MAIN WORKSPACE CONTENT: NO WASTED SPACE */}
+            <main className="flex-1 min-w-0 w-full overflow-y-auto">
+                {/* Top Desktop Bar */}
+                <div className="hidden lg:flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-2xs">
+                    <div>
+                        <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                            {tabTitles[activeTab] || activeTab.replace('_', ' ')}
+                        </h2>
+                        <p className="text-xs text-slate-500">Student Placement &amp; Career Advancement Workspace</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <NotificationBell />
+                        <Link
+                            to="/jobs"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition shadow-xs"
+                        >
+                            <Briefcase className="w-3.5 h-3.5" />
+                            Explore Opportunities
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Workspace Content: edge-to-edge with no space wasted */}
+                <div className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
+                    {activeTab === 'jobs' && (
+                        <div className="space-y-6 w-full">
+                            <JobListings isEmbedded={true} onApplicationSuccess={fetchData} />
+                        </div>
+                    )}
 
                 {activeTab === 'profile' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
                         {/* Profile Card */}
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-lg transition relative">
                             {!editMode && (
@@ -1474,7 +1713,7 @@ const StudentDashboard = () => {
                 )}
 
                 {activeTab === 'applications' && (
-                    <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-lg transition max-w-4xl mx-auto">
+                    <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-lg transition w-full">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                 <Briefcase className="w-5 h-5 text-blue-500" />
@@ -1578,7 +1817,7 @@ const StudentDashboard = () => {
                 )}
 
                 {activeTab === 'notifications' && (
-                    <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 max-w-3xl mx-auto">
+                    <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 w-full">
                         <h3 className="text-lg font-bold text-slate-900 mb-5">Notification & Alert Preferences</h3>
                         {!preferences ? (
                             <div className="text-slate-500">Loading preferences...</div>
@@ -1605,7 +1844,8 @@ const StudentDashboard = () => {
                         )}
                     </div>
                 )}
-            </div>
+                </div>
+            </main>
         </div>
     );
 };

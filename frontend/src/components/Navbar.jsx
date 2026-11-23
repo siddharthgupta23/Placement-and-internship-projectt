@@ -585,25 +585,26 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
-      <div className="w-full px-6 sm:px-8 lg:px-12">
-        <div className="flex min-h-[82px] w-full items-center justify-between gap-6">          
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-[72px] sm:min-h-[82px] w-full items-center justify-between gap-3 sm:gap-6">          
 {/* JIMS Logo and portal name */}
 <Link
   to="/"
   onClick={closeMenu}
-  className="flex shrink-0 items-center gap-3"
+  className="flex shrink-0 items-center gap-2.5 sm:gap-3"
 >
   <img
     src="/images/jims-full-logo.png.png"
     alt="JIMS Logo"
-    className="h-16 w-auto max-w-[170px] object-contain"
+    className="h-12 sm:h-14 md:h-16 w-auto max-w-[120px] sm:max-w-[170px] object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none'; }}
   />
 
   <div className="flex flex-col">
-    <span className="text-lg font-bold tracking-tight text-blue-950 sm:text-xl">
+    <span className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-blue-950 leading-tight">
       Placement Portal
     </span>
-    <span className="text-xs text-slate-500 sm:text-sm">
+    <span className="text-3xs sm:text-xs text-slate-500 sm:text-sm">
       Career &amp; Internship Center
     </span>
   </div>

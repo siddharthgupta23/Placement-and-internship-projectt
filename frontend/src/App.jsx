@@ -118,9 +118,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      <Navbar />
+      {!isDedicatedWorkspace && <Navbar />}
 
-      <main className={isDedicatedWorkspace ? "w-full" : "container mx-auto px-4 py-8"}>
+      <main className={isDedicatedWorkspace ? "w-full min-h-screen p-0 m-0" : "container mx-auto px-4 py-8"}>
         <Routes>
             {/* Homepage */}
             <Route
